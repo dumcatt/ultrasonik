@@ -28,21 +28,26 @@ bit_depth=24
 ; Common values:
 ;   64  = ~1.5ms (very low latency, may cause crackling)
 ;   128 = ~2.9ms
-;   192 = ~4.4ms (recommended, matches beatmania IIDX INFINITAS)
+;   192 = ~4.4ms (recommended, matches newer IIDX styles)
 ;   256 = ~5.8ms
 ;   512 = ~11.6ms (safe fallback)
 buffer_size=192
 ```
 
-The defaults (24-bit Int24LSB at 44100Hz with ~4ms buffer) match the audio configuration used by modern beatmania IIDX (INFINITAS).
+The defaults (24-bit Int24LSB at 44100Hz with ~4ms buffer) match the audio configuration used by modern beatmania IIDX.
 
 ## Requirements
 
 An ASIO-compatible sound card with appropriate drivers installed is required. Examples include:
 
 - ASUS Xonar AE (used in arcade cabinets)
+- ASUS Xonar U7 (same chipset as the Xonar AE)
 - Any professional audio interface with ASIO drivers
 - ASIO4ALL (generic ASIO wrapper, not recommended for lowest latency)
+
+## Issues
+
+With certain IIDX styles (22 PENDUAL being one) the system BGM seems to not play. This is consistent with the original hypersonik shim.
 
 ## Building
 
