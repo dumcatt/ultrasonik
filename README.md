@@ -1,6 +1,6 @@
 # Hypersonik
 
-Hypersonik is a reimplementation of DirectSound built on top of WASAPI, built with low-latency use cases in mind. This is currently very early alpha software which is missing large chunks of functionality. Patches welcome.
+Hypersonik is a reimplementation of DirectSound built on top of ASIO, built with low-latency use cases in mind. This is currently very early alpha software which is missing large chunks of functionality. Patches welcome.
 
 ## Building
 
