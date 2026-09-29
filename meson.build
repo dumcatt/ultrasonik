@@ -1,4 +1,4 @@
-project('hypersonik', 'c', version: '0.4.0')
+project('ultrasonik', 'c', version: '0.4.0')
 
 add_global_arguments(
     '-Wall',
@@ -21,7 +21,8 @@ if get_option('buildtype') == 'release'
 endif
 
 cc = meson.get_compiler('c')
-lib_avrt = cc.find_library('avrt')
+lib_ole32 = cc.find_library('ole32')
+lib_advapi32 = cc.find_library('advapi32')
 lib_msacm32 = cc.find_library('msacm32')
 
 inc = include_directories(

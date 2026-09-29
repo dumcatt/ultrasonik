@@ -1,8 +1,39 @@
-# Recommended build directory names
-
+# Build directories
+build/
+build*/
 debug/
 release/
+subprojects/
+.mesonpy/
 
-# IDE/text editor files
+# Compiled objects and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.so
+*.dylib
 
+# Precompiled headers
+*.gch
+*.pch
+
+# Debugging and crash logs
+*.dmp
+*.log
+
+# Editor and IDE files
 .*.swp
+*~
+.vscode/
+.idea/
+*.suo
+*.user
+*.user.*
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

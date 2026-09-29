@@ -11,13 +11,13 @@
 #include "reaper.h"
 #include "refcount.h"
 #include "trace.h"
-#include "wasapi.h"
+#include "asio.h"
 
 struct ds_api {
     IDirectSound8 com;
     refcount_t rc;
     CRITICAL_SECTION lock; /* TODO implement locking */
-    struct wasapi *wasapi;
+    struct asio_backend *asio;
     struct reaper *reaper;
 };
 
@@ -59,13 +59,13 @@ static HRESULT ds_api_alloc(struct ds_api **out)
     self->com.lpVtbl = &ds_api_vtbl;
     self->rc = 1;
 
-    hr = wasapi_alloc(&self->wasapi);
+    hr = asio_alloc(&self->asio);
 
     if (FAILED(hr)) {
         goto end;
     }
 
-    hr = wasapi_snd_client_alloc(self->wasapi, &cli);
+    hr = asio_snd_client_alloc(self->asio, &cli);
 
     if (FAILED(hr)) {
         goto end;
@@ -120,13 +120,13 @@ static struct ds_api *ds_api_unref(struct ds_api *self)
         return NULL;
     }
 
-    trace("Hypersonik is shutting down");
+    trace("Ultrasonik is shutting down");
 
     reaper_free(self->reaper);
-    wasapi_free(self->wasapi);
+    asio_free(self->asio);
     free(self);
 
-    trace("Hypersonik shutdown complete");
+    trace("Ultrasonik shutdown complete");
 
     return NULL;
 }
@@ -148,7 +148,7 @@ static HRESULT ds_api_start(struct ds_api *self)
         return hr;
     }
 
-    return wasapi_start(self->wasapi);
+    return asio_start(self->asio);
 }
 
 static __stdcall HRESULT ds_api_query_interface(
@@ -252,7 +252,7 @@ static HRESULT ds_api_create_sound_buffer_sec(
     child = NULL;
     cli = NULL;
 
-    hr = wasapi_snd_client_alloc(self->wasapi, &cli);
+    hr = asio_snd_client_alloc(self->asio, &cli);
 
     if (FAILED(hr)) {
         goto end;
@@ -266,7 +266,7 @@ static HRESULT ds_api_create_sound_buffer_sec(
             cli,
             NULL,
             desc->lpwfxFormat,
-            wasapi_get_sys_format(self->wasapi),
+            asio_get_sys_format(self->asio),
             desc->dwBufferBytes);
 
     if (FAILED(hr)) {
@@ -314,7 +314,7 @@ static __stdcall HRESULT ds_api_duplicate_sound_buffer(
         goto end;
     }
 
-    hr = wasapi_snd_client_alloc(self->wasapi, &cli);
+    hr = asio_snd_client_alloc(self->asio, &cli);
 
     if (FAILED(hr)) {
         goto end;
@@ -328,7 +328,7 @@ static __stdcall HRESULT ds_api_duplicate_sound_buffer(
             cli,
             ds_buffer_get_snd_buffer(src),
             ds_buffer_get_format_(src),
-            wasapi_get_sys_format(self->wasapi),
+            asio_get_sys_format(self->asio),
             ds_buffer_get_nbytes(src));
 
     if (FAILED(hr)) {
@@ -449,7 +449,7 @@ HRESULT __stdcall ds_api_create(
         return E_NOTIMPL;
     }
 
-    trace("Initializing Hypersonik: Allocating system resources");
+    trace("Initializing Ultrasonik: Allocating system resources");
 
     *out = NULL;
     hr = ds_api_alloc(&api);
@@ -458,7 +458,7 @@ HRESULT __stdcall ds_api_create(
         goto end;
     }
 
-    trace("Initializing Hypersonik: Launching realtime audio thread");
+    trace("Initializing Ultrasonik: Starting ASIO audio backend");
 
     hr = ds_api_start(api);
 
@@ -470,9 +470,9 @@ HRESULT __stdcall ds_api_create(
 
 end:
     if (SUCCEEDED(hr)) {
-        trace("Initializing Hypersonik: OK");
+        trace("Initializing Ultrasonik: OK");
     } else {
-        trace("Initializing Hypersonik: Failed! hr=%08x", hr);
+        trace("Initializing Ultrasonik: Failed! hr=%08x", hr);
     }
 
     ds_api_unref(api);

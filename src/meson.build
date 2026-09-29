@@ -5,6 +5,12 @@ shared_library(
     vs_module_defs : 'dsound.def',
     name_prefix : '',
     sources : [
+        'asio.c',
+        'asio.h',
+        'asio-iface.c',
+        'asio-iface.h',
+        'config.c',
+        'config.h',
         'converter.c',
         'converter.h',
         'ds-api.c',
@@ -32,14 +38,14 @@ shared_library(
         'refcount.h',
         'trace.c',
         'trace.h',
-        'wasapi.c',
-        'wasapi.h',
     ],
     dependencies : [
-        lib_avrt,
+        lib_ole32,
+        lib_advapi32,
         lib_msacm32,
     ],
     link_with : [
         guid_lib,
     ],
 )
+
