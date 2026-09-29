@@ -45,6 +45,24 @@ An ASIO-compatible sound card with appropriate drivers installed is required. Ex
 - Any professional audio interface with ASIO drivers
 - ASIO4ALL (generic ASIO wrapper, not recommended for lowest latency)
 
+## Usage
+#### spicetools
+
+```
+spice.exe -k dsound.dll
+```
+
+#### bemanitools
+inject.exe
+```
+inject iidxhook1.dll dsound.dll bm2dx.exe --config iidxhook-09.conf %*
+```
+
+launcher.exe
+```
+launcher -K iidxhook7.dll -K dsound.dll bm2dx.dll --config iidxhook-24.conf %*
+```
+
 ## Issues
 
 With certain IIDX styles (22 PENDUAL being one) the system BGM seems to not play. This is consistent with the original hypersonik shim.
