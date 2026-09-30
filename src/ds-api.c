@@ -2,6 +2,7 @@
 #include <dsound.h>
 
 #include <assert.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -177,24 +178,31 @@ static __stdcall HRESULT ds_api_query_interface(
 
 static __stdcall ULONG ds_api_add_ref(IDirectSound8 *com)
 {
-    ds_api_ref(ds_api_downcast(com));
+    struct ds_api *self;
 
-    return 0;
+    self = ds_api_downcast(com);
+    ds_api_ref(self);
+
+    return atomic_load(&self->rc);
 }
 
 static __stdcall ULONG ds_api_release(IDirectSound8 *com)
 {
-    ds_api_unref(ds_api_downcast(com));
+    struct ds_api *self;
+    ULONG rc;
 
-    return 0;
+    self = ds_api_downcast(com);
+    rc = atomic_load(&self->rc) - 1;
+    ds_api_unref(self);
+
+    return rc;
 }
 
 static __stdcall HRESULT ds_api_compact(IDirectSound8 *com)
 {
-    /* ... pls */
-    trace("stub %s", __func__);
+    /* Nothing to compact; real DirectSound returns DS_OK for software devices */
 
-    return E_NOTIMPL;
+    return S_OK;
 }
 
 static __stdcall HRESULT ds_api_create_sound_buffer(
@@ -252,6 +260,21 @@ static HRESULT ds_api_create_sound_buffer_sec(
     child = NULL;
     cli = NULL;
 
+    if (desc->lpwfxFormat == NULL) {
+        trace("%s: Secondary buffer without a format", __func__);
+
+        return DSERR_INVALIDPARAM;
+    }
+
+    trace("CreateSoundBuffer: flags=%08x bytes=%u fmt=%04x ch=%u rate=%u "
+            "bits=%u",
+            (unsigned int) desc->dwFlags,
+            (unsigned int) desc->dwBufferBytes,
+            desc->lpwfxFormat->wFormatTag,
+            desc->lpwfxFormat->nChannels,
+            (unsigned int) desc->lpwfxFormat->nSamplesPerSec,
+            desc->lpwfxFormat->wBitsPerSample);
+
     hr = asio_snd_client_alloc(self->asio, &cli);
 
     if (FAILED(hr)) {
@@ -267,7 +290,13 @@ static HRESULT ds_api_create_sound_buffer_sec(
             NULL,
             desc->lpwfxFormat,
             asio_get_sys_format(self->asio),
-            desc->dwBufferBytes);
+            desc->dwBufferBytes,
+            desc->dwFlags,
+            asio_get_period_frames(self->asio));
+
+    if (FAILED(hr)) {
+        trace("CreateSoundBuffer failed: hr=%08x", (unsigned int) hr);
+    }
 
     if (FAILED(hr)) {
         goto end;
@@ -329,7 +358,9 @@ static __stdcall HRESULT ds_api_duplicate_sound_buffer(
             ds_buffer_get_snd_buffer(src),
             ds_buffer_get_format_(src),
             asio_get_sys_format(self->asio),
-            ds_buffer_get_nbytes(src));
+            ds_buffer_get_nbytes(src),
+            ds_buffer_get_flags(src),
+            asio_get_period_frames(self->asio));
 
     if (FAILED(hr)) {
         goto end;
@@ -352,9 +383,40 @@ static __stdcall HRESULT ds_api_get_caps(
         IDirectSound8 *com,
         DSCAPS *caps)
 {
-    trace("%s [stub]", __func__);
+    DWORD size;
 
-    return E_NOTIMPL;
+    /*  Sound engines commonly call this during initialisation and give up
+        on the device if it fails, so report a plausible software device. */
+
+    if (caps == NULL) {
+        return DSERR_INVALIDPARAM;
+    }
+
+    if (caps->dwSize < sizeof(*caps)) {
+        trace("%s: unexpected dwSize %u", __func__,
+                (unsigned int) caps->dwSize);
+
+        return DSERR_INVALIDPARAM;
+    }
+
+    size = caps->dwSize;
+    memset(caps, 0, sizeof(*caps));
+    caps->dwSize = size;
+    caps->dwFlags =
+            DSCAPS_PRIMARYMONO |
+            DSCAPS_PRIMARYSTEREO |
+            DSCAPS_PRIMARY8BIT |
+            DSCAPS_PRIMARY16BIT |
+            DSCAPS_CONTINUOUSRATE |
+            DSCAPS_SECONDARYMONO |
+            DSCAPS_SECONDARYSTEREO |
+            DSCAPS_SECONDARY8BIT |
+            DSCAPS_SECONDARY16BIT;
+    caps->dwMinSecondarySampleRate = DSBFREQUENCY_MIN;
+    caps->dwMaxSecondarySampleRate = DSBFREQUENCY_MAX;
+    caps->dwPrimaryBuffers = 1;
+
+    return S_OK;
 }
 
 static __stdcall HRESULT ds_api_get_speaker_config(
@@ -404,8 +466,7 @@ static __stdcall HRESULT ds_api_verify_certification(
         IDirectSound8 *com,
         DWORD *certified)
 {
-    /* ... pls */
-    trace("%s(%p)", __func__);
+    trace("%s(%p)", __func__, certified);
 
     if (certified == NULL) {
         return E_POINTER;
@@ -478,4 +539,46 @@ end:
     ds_api_unref(api);
 
     return hr;
+}
+
+/*  Exported as DirectSoundCreate. IDirectSound8 is a strict superset of
+    IDirectSound, so the same object serves both. Previously only
+    DirectSoundCreate8 was exported, so any sound engine that resolves
+    DirectSoundCreate (or the enumerators below) at runtime with
+    GetProcAddress would fail to initialise and stay silent. */
+
+HRESULT __stdcall ds_api_create_legacy(
+        const GUID *guid_device,
+        IDirectSound **out,
+        IUnknown *outer)
+{
+    trace("%s", __func__);
+
+    return ds_api_create(guid_device, (IDirectSound8 **) out, outer);
+}
+
+HRESULT __stdcall ds_api_enumerate_a(LPDSENUMCALLBACKA callback, void *ctx)
+{
+    trace("%s", __func__);
+
+    if (callback == NULL) {
+        return DSERR_INVALIDPARAM;
+    }
+
+    callback(NULL, "Primary Sound Driver", "", ctx);
+
+    return S_OK;
+}
+
+HRESULT __stdcall ds_api_enumerate_w(LPDSENUMCALLBACKW callback, void *ctx)
+{
+    trace("%s", __func__);
+
+    if (callback == NULL) {
+        return DSERR_INVALIDPARAM;
+    }
+
+    callback(NULL, L"Primary Sound Driver", L"", ctx);
+
+    return S_OK;
 }

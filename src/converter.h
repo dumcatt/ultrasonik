@@ -1,11 +1,17 @@
 #pragma once
 
-#include <winerror.h>
+#include <windows.h>
 #include <mmreg.h>
 
 #include <stddef.h>
 
 struct converter;
+
+/*  Validate a client-supplied format and rewrite it into a canonical
+    WAVEFORMATEX (PCM or IEEE float, cbSize 0, consistent nBlockAlign and
+    nAvgBytesPerSec). Handles WAVE_FORMAT_EXTENSIBLE. */
+
+HRESULT converter_normalize_format(const WAVEFORMATEX *in, WAVEFORMATEX *out);
 
 HRESULT converter_calculate_dest_nbytes(
         const WAVEFORMATEX *src,
@@ -23,6 +29,13 @@ HRESULT converter_alloc(
         size_t dest_nbytes);
 
 void converter_free(struct converter *conv);
+
+/* Re-convert the output affected by a write to [src_offset, +src_nbytes) */
+
+HRESULT converter_convert_range(
+        struct converter *conv,
+        size_t src_offset,
+        size_t src_nbytes);
 
 HRESULT converter_convert(
         struct converter *conv,

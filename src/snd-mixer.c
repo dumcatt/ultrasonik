@@ -83,7 +83,13 @@ void snd_mixer_play(struct snd_mixer *m, struct snd_stream *stm)
     assert(m != NULL);
     assert(stm != NULL);
 
-    snd_stream_rewind(stm);
+    /*  Do NOT rewind here. DirectSound's Play() resumes from the current
+        position (the client side handles restarting finished one-shots, see
+        snd_stream_prepare_play). Rewinding on every Play() broke streaming
+        buffers, which are commonly re-Play()ed while already playing or
+        resumed after a Stop(). */
+
+    snd_stream_ack_play(stm);
     node = snd_stream_list_upcast(stm);
 
     if (!list_node_is_inserted(node)) {
@@ -102,6 +108,7 @@ void snd_mixer_stop(struct snd_mixer *m, struct snd_stream *stm)
 
     if (list_node_is_inserted(node)) {
         list_remove(m->streams, node);
+        snd_stream_notify_stop(stm);
     }
 }
 

@@ -1,4 +1,7 @@
 LIBRARY dsound
 
 EXPORTS
+    DirectSoundCreate=ds_api_create_legacy@12 @1
+    DirectSoundEnumerateA=ds_api_enumerate_a@8 @2
+    DirectSoundEnumerateW=ds_api_enumerate_w@8 @3
     DirectSoundCreate8=ds_api_create@12 @11

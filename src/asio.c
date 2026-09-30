@@ -579,6 +579,13 @@ HRESULT asio_snd_client_alloc(
     return hr_from_errno(r);
 }
 
+size_t asio_get_period_frames(const struct asio_backend *asio)
+{
+    assert(asio != NULL);
+
+    return asio->buffer_size > 0 ? (size_t) asio->buffer_size : 512;
+}
+
 const WAVEFORMATEX *asio_get_sys_format(const struct asio_backend *asio)
 {
     assert(asio != NULL);

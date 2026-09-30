@@ -22,8 +22,8 @@ void snd_command_stop(struct snd_command *cmd, struct snd_stream *stm);
 void snd_command_set_volume(
         struct snd_command *cmd,
         struct snd_stream *stm,
-        size_t channel_no,
-        uint8_t value);
+        uint16_t left,
+        uint16_t right);
 void snd_command_set_callback(
         struct snd_command *cmd,
         snd_callback_t callback,

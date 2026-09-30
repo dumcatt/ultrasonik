@@ -19,7 +19,9 @@ HRESULT ds_buffer_alloc(
         struct snd_buffer *buf,
         const WAVEFORMATEX *format,
         const WAVEFORMATEX *format_sys,
-        size_t nbytes);
+        size_t nbytes,
+        DWORD flags,
+        size_t lead_frames);
 struct ds_buffer *ds_buffer_downcast(IDirectSoundBuffer *com);
 IDirectSoundBuffer *ds_buffer_upcast(struct ds_buffer *self);
 struct ds_buffer *ds_buffer_ref(struct ds_buffer *self);
@@ -29,3 +31,4 @@ void ds_buffer_unref_notify(void *ptr);
 struct snd_buffer *ds_buffer_get_snd_buffer(struct ds_buffer *self);
 const WAVEFORMATEX *ds_buffer_get_format_(const struct ds_buffer *self);
 size_t ds_buffer_get_nbytes(const struct ds_buffer *self);
+DWORD ds_buffer_get_flags(const struct ds_buffer *self);

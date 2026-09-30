@@ -131,14 +131,19 @@ void snd_command_stop(struct snd_command *cmd, struct snd_stream *stm)
 void snd_command_set_volume(
         struct snd_command *cmd,
         struct snd_stream *stm,
-        size_t channel_no,
-        uint8_t value)
+        uint16_t left,
+        uint16_t right)
 {
     assert(cmd != NULL);
 
+    /*  NOTE: this used to take a uint8_t, so a full-scale volume of 0x100
+        (i.e. SetVolume(DSBVOLUME_MAX)) was truncated to 0 and the buffer went
+        completely silent. BGM is typically set to full volume. */
+
     cmd->type = SND_COMMAND_SET_VOLUME;
     cmd->stm = stm;
-    cmd->volumes[channel_no] = value;
+    cmd->volumes[0] = left;
+    cmd->volumes[1] = right;
 }
 
 void snd_command_set_callback(

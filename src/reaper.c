@@ -194,7 +194,13 @@ HRESULT reaper_alloc_task(
         goto end;
     }
 
+    /*  The reaper's command pool is shared by every buffer, and buffers may be
+        created from several application threads at once (e.g. a BGM
+        streaming thread alongside the main thread), so serialise access. */
+
+    EnterCriticalSection(&reaper->lock);
     r = snd_client_cmd_alloc(reaper->cli, &task->cmd);
+    LeaveCriticalSection(&reaper->lock);
 
     if (r < 0) {
         hr = hr_from_errno(r);
